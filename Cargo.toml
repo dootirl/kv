@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+  "kv_proxy",
+  "kv_store",
+]
