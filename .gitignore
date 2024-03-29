@@ -1,3 +1,4 @@
 /target
 /kv_proxy/target
+/kv_proxy/certs
 /kv_store/target

@@ -1,61 +1,29 @@
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::env;
+use std::net::SocketAddr;
+use std::process::exit;
 
-use tonic::{transport::Server, Request, Response, Status};
+use log::{error, info};
+use tonic::transport::Server;
 
-use kv_store::key_value_store::key_value_store_server::{
-    KeyValueStore as KeyValueStoreService, KeyValueStoreServer,
-};
-use kv_store::key_value_store::{self, GetRequest, GetResponse, SetRequest, SetResponse};
-
-struct KeyValueStore {
-    store: Arc<Mutex<HashMap<String, String>>>,
-}
-
-impl KeyValueStore {
-    fn new() -> Self {
-        Self {
-            store: Arc::new(Mutex::new(HashMap::new())),
-        }
-    }
-}
-
-#[tonic::async_trait]
-impl KeyValueStoreService for KeyValueStore {
-    async fn get(&self, request: Request<GetRequest>) -> Result<Response<GetResponse>, Status> {
-        let store = self.store.lock().unwrap();
-        let key = request.into_inner().key;
-
-        let reply = key_value_store::GetResponse {
-            value: store.get(&key).cloned(),
-        };
-
-        Ok(Response::new(reply))
-    }
-
-    async fn set(&self, request: Request<SetRequest>) -> Result<Response<SetResponse>, Status> {
-        println!("in");
-        let mut store = self.store.lock().unwrap();
-        let SetRequest { key, value } = request.into_inner();
-
-        println!("inserting {} {}", key, value);
-        store.insert(key, value);
-        let reply = key_value_store::SetResponse {};
-        println!("inserted!");
-
-        Ok(Response::new(reply))
-    }
-}
+use kv_store::key_value_store::key_value_store_server::KeyValueStoreServer;
+use kv_store::KeyValueStore;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let addr = "[::1]:50051".parse()?;
+async fn main() {
+    env_logger::init();
+    let addr: SocketAddr = env::var("LISTEN_ADDRESS")
+        .unwrap_or("[::1]:50051".to_string())
+        .parse()
+        .unwrap_or_else(|_| {
+            error!("Could not parse listen address");
+            exit(1);
+        });
     let store = KeyValueStore::new();
 
+    info!("Listening on {}:{}", addr.ip(), addr.port());
     Server::builder()
         .add_service(KeyValueStoreServer::new(store))
         .serve(addr)
-        .await?;
-
-    Ok(())
+        .await
+        .unwrap_or_else(|e| error!("{e}"));
 }
