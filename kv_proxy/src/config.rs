@@ -19,16 +19,16 @@ pub struct Config {
 
 // Serde defaults don't support string literals
 fn default_listen_address() -> String {
-    "127.0.0.1:3000".to_string()
+    "127.0.0.1:3000".to_owned()
 }
 
 fn default_store_url() -> String {
-    "https://[::1]:50051".to_string()
+    "https://[::1]:50051".to_owned()
 }
 
 impl Config {
     pub fn build() -> Config {
-        let filename = env::var("CONFIG_PATH").unwrap_or("config.toml".to_string());
+        let filename = env::var("CONFIG_PATH").unwrap_or("config.toml".to_owned());
 
         let contents = fs::read_to_string(&filename).unwrap_or_else(|_| {
             exit_with_msg(format!("Could not read file `{filename}`").as_str())

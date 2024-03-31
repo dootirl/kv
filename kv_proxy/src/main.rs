@@ -74,14 +74,14 @@ async fn store_get(
     State(client): State<Arc<Mutex<KeyValueStoreClient<Channel>>>>,
     Query(params): Query<StoreGetRequest>,
 ) -> Response {
-    let key = params.key.into();
+    let StoreGetRequest { key } = params;
 
     if key == "" {
         debug!("Get - key: `{key}` - invalid request (empty key)");
         return (
             StatusCode::BAD_REQUEST,
             Json(ErrorResponse {
-                error: "`key` argument must be provided".to_string(),
+                error: "`key` argument must be provided".to_owned(),
             }),
         )
             .into_response();
@@ -107,15 +107,14 @@ async fn store_set(
     State(client): State<Arc<Mutex<KeyValueStoreClient<Channel>>>>,
     Json(payload): Json<StoreSetRequest>,
 ) -> Response {
-    let key = payload.key.into();
-    let value = payload.value.into();
+    let StoreSetRequest { key, value } = payload;
 
     if key == "" || value == "" {
         debug!("Set - key: `{key}`, value: `{value}` - invalid request (empty key/value)");
         return (
             StatusCode::BAD_REQUEST,
             Json(ErrorResponse {
-                error: "`key` and `value` arguments must be provided".to_string(),
+                error: "`key` and `value` arguments must be provided".to_owned(),
             }),
         )
             .into_response();
