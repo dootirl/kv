@@ -20,11 +20,10 @@ After running them, you should have binaries `kv_store` and `kv_proxy` available
 $ ./target/release/kv_store
 ```
 ### kv_proxy
-`kv_proxy` is a REST proxy to `kv_store`. Minimally it requires `config.toml` with `cert.pem` and `key.pem` keys set to locations of HTTPS certificates. To generate those, make sure you have OpenSSL installed and enter:
+`kv_proxy` is a REST proxy to `kv_store`. Minimally it requires paths to HTTPS certificates which you can supply with `--cert-path` and `--key-path` flags. To generate those certificates, make sure you have OpenSSL installed and enter:
 ```
 $ openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 365 -nodes
 ```
-Make sure to fill `cert.pem` and `key.pem` with paths to these certificates and have `kv_store` running or you'll be greeted with connection error message.
 
 Now to finally run it type:
 ```

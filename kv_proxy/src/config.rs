@@ -1,39 +1,26 @@
-use std::env;
-use std::fs;
+use clap::Parser;
 
-use serde::Deserialize;
-
-use crate::utils::exit_with_msg;
-
-#[derive(Deserialize)]
+#[derive(Parser, Debug)]
 pub struct Config {
-    #[serde(default = "default_listen_address")]
-    pub listen_address: String,
+    #[arg(short, long, default_value = "127.0.0.1:3000")]
+    pub address: String,
 
+    #[arg(short, long, default_value = "certs/cert.pem")]
     pub cert_path: String,
+
+    #[arg(short, long, default_value = "certs/key.pem")]
     pub key_path: String,
 
-    #[serde(default = "default_store_url")]
+    #[arg(short, long, default_value = "https://[::1]:50051")]
     pub store_url: String,
 }
 
-// Serde defaults don't support string literals
-fn default_listen_address() -> String {
-    "127.0.0.1:3000".to_owned()
-}
-
-fn default_store_url() -> String {
-    "https://[::1]:50051".to_owned()
-}
-
 impl Config {
-    pub fn build() -> Config {
-        let filename = env::var("CONFIG_PATH").unwrap_or("config.toml".to_owned());
+    pub fn new() -> Self {
+        Self::parse()
+    }
 
-        let contents = fs::read_to_string(&filename).unwrap_or_else(|_| {
-            exit_with_msg(format!("Could not read file `{filename}`").as_str())
-        });
-
-        toml::from_str(&contents).unwrap_or_else(|e| exit_with_msg(format!("{e}").as_str()))
+    pub fn new_empty() -> Self {
+        Self::parse_from::<[_; 0], String>([])
     }
 }

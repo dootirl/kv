@@ -1,9 +1,8 @@
 use std::collections::HashMap;
-use std::env;
 use std::net::SocketAddr;
-use std::process::exit;
 use std::sync::{Arc, Mutex};
 
+use config::Config;
 use log::{debug, error, info};
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
@@ -14,6 +13,7 @@ use key_value_store::key_value_store_server::{
 
 use key_value_store::{GetRequest, GetResponse, SetRequest, SetResponse};
 
+pub mod config;
 pub mod key_value_store {
     tonic::include_proto!("key_value_store");
 }
@@ -58,18 +58,12 @@ impl KeyValueStoreService for KeyValueStore {
     }
 }
 
-pub fn get_addr() -> SocketAddr {
-    env::var("LISTEN_ADDRESS")
-        .unwrap_or("[::1]:50051".to_string())
-        .parse()
-        .unwrap_or_else(|_| {
-            error!("Could not parse listen address");
-            exit(1);
-        })
-}
-
-pub async fn run(addr: SocketAddr) {
+pub async fn run(config: Config) -> Result<(), String> {
     let store = KeyValueStore::new();
+    let addr: SocketAddr = config
+        .address
+        .parse()
+        .map_err(|_| format!("Could not parse `{}`", config.address))?;
 
     info!("Listening on {}:{}", addr.ip(), addr.port());
     Server::builder()
@@ -77,27 +71,33 @@ pub async fn run(addr: SocketAddr) {
         .serve(addr)
         .await
         .unwrap_or_else(|e| error!("{e}"));
+
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
+    use std::net::SocketAddr;
+
     use tokio::time::{sleep, Duration};
 
+    use crate::config::Config;
     use crate::key_value_store::key_value_store_client::KeyValueStoreClient;
-    use crate::{get_addr, run, GetRequest, GetResponse, SetRequest};
+    use crate::{run, GetRequest, GetResponse, SetRequest};
 
     #[test]
-    fn default_address() {
-        assert_eq!(get_addr(), "[::1]:50051".parse().unwrap());
+    fn default_config() {
+        let config = Config::new_empty();
+        assert_eq!(config.address, "[::1]:50051");
     }
 
     #[tokio::test]
     async fn empty_get() {
-        let task = tokio::spawn(async move {
-            run(get_addr()).await;
-        });
+        let config = Config::new_empty();
+        let addr: SocketAddr = config.address.parse().unwrap();
+        let task = tokio::spawn(async move { run(config).await });
         sleep(Duration::from_secs(2)).await;
-        let mut client = KeyValueStoreClient::connect(format!("http://{}", get_addr()))
+        let mut client = KeyValueStoreClient::connect(format!("http://{}", addr))
             .await
             .unwrap();
 
@@ -113,11 +113,11 @@ mod tests {
 
     #[tokio::test]
     async fn nonempty_get() {
-        let task = tokio::spawn(async move {
-            run(get_addr()).await;
-        });
+        let config = Config::new_empty();
+        let addr: SocketAddr = config.address.parse().unwrap();
+        let task = tokio::spawn(async move { run(config).await });
         sleep(Duration::from_secs(2)).await;
-        let mut client = KeyValueStoreClient::connect(format!("http://{}", get_addr()))
+        let mut client = KeyValueStoreClient::connect(format!("http://{}", addr))
             .await
             .unwrap();
 

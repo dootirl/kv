@@ -1,7 +1,13 @@
-use kv_store::{get_addr, run};
+use std::error::Error;
+
+use kv_store::{config::Config, run};
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
-    run(get_addr()).await;
+
+    let config = Config::new();
+    run(config).await?;
+
+    Ok(())
 }
